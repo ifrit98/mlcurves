@@ -81,7 +81,7 @@ def antirectifier_dense(input_shape,
                         dropout_rate=0.2,
                         flatten=True,
                         logits=False,
-                        jit_compile=True):
+                        jit_compile=False):
 
     assert len(unit_sizes) == n_layers
 
@@ -138,7 +138,7 @@ def antirectifier_cnn_1D(input_shape,
                          padding='same',
                          logits=False,
                          max_layer_depth_pool=8,
-                         jit_compile=True):
+                         jit_compile=False):
 
     assert len(filter_sizes) == len(kernel_sizes) == n_layers
 
@@ -201,7 +201,7 @@ def antirectifier_cnn_2D(input_shape,
                          padding='same',
                          logits=False,
                          max_layer_depth_pool=8,
-                         jit_compile=True):
+                         jit_compile=False):
 
     assert len(filter_sizes) == len(kernel_sizes) == n_layers
 

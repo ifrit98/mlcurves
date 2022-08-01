@@ -126,20 +126,55 @@ def complexity_curves_tf(model_fn,
 
 
 
-def test():
+def test(conv1D=True, subset=False):
+    set_based_gpu()
 
     import tensorflow as tf
     import tensorflow_datasets as tfds
     from mlcurves import models, complexity_curves_tf, complexity_curves_npy
     from mlcurves.curve_utils import fargs, plot_metrics, get_param_count
 
-    model_fn = models.antirectifier.build_antirectifier_dense
-    configs = models.antirectifier.dense_configs
+    conv1D=True
+    model_fn = models.antirectifier.build_antirectifier_cnn_1D \
+        if conv1D else models.antirectifier.build_antirectifier_cnn_1D
+    configs = models.antirectifier.cnn_configs
 
     # For tensorflow datasets
     ds, ts = tfds.load('mnist', split=['train', 'test'], shuffle_files=True)
-    train_ds = ds.map(lambda x: (tf.reshape(x['image'], [-1, 1]), x['label']))
-    test_ds = ts.map(lambda x: (tf.reshape(x['image'], [-1, 1]), x['label']))
+    if conv1D:
+        train_ds = ds.map(lambda x: (tf.reshape(x['image'], [-1, 1]), x['label']))
+        test_ds = ts.map(lambda x: (tf.reshape(x['image'], [-1, 1]), x['label']))
+    else:
+        train_ds = ds.map(lambda x: (x['image'], x['label']))
+        test_ds =  ts.map(lambda x: (x['image'], x['label']))
+
+
+    for x in train_ds: break
+    input_shape = x[0].shape
+    num_classes = 10
+    del x
+
+    batch_size = 32
+    epochs = 10
+
+    val_size = 1500
+    val_ds = train_ds.take(val_size)
+    train_ds = train_ds.skip(val_size)
+
+    subset=False
+    if subset:
+        train_ds = train_ds.take(20)
+        val_ds = val_ds.take(2)
+        test_ds = test_ds.take(5)
+
+
+    complexity_curves_tf(
+        model_fn=model_fn,
+        train_ds=train_ds, val_ds=val_ds, test_ds=test_ds, num_classes=num_classes,
+        batch_size=batch_size, epochs=epochs, input_shape=input_shape, configs=configs, 
+        outpath='./plots'
+    )
+
 
     # For numpy arrays
     trainXy = np.asarray(list(ds.as_numpy_iterator()))
@@ -148,30 +183,9 @@ def test():
     y = X[:, 1]
     X = X[:, 0]
 
-    batch_size = 128
-    epochs = 5
-
-    val_size = 1500
-    train_ds = train_ds.skip(val_size)
-    val_ds = train_ds.take(val_size)
-
-    subset=False
-    if subset:
-        train_ds = train_ds.take(20)
-        val_ds = val_ds.take(2)
-        test_ds = test_ds.take(5)
-
-    num_classes = 10
-    input_shape = [784, 1]
-
-    complexity_curves_tf(
-        model_fn=model_fn,
-        train_ds=train_ds, val_ds=val_ds, test_ds=test_ds, num_classes=num_classes,
-        batch_size=batch_size, epochs=epochs, input_shape=input_shape, configs=configs, outpath='./'
-    )
 
     complexity_curves_npy(
         model_fn=model_fn, X=X, y=y,
         epochs=epochs, batch_size=batch_size, num_classes=num_classes,
-        input_shape=input_shape, configs=configs, outpath='./'
+        input_shape=input_shape, configs=configs, outpath='./plots'
     )
