@@ -4,6 +4,7 @@ import numpy as np
 from .curve_utils import process_history, plot_metrics, split_Xy, get_param_count, fargs
 
 
+
 def complexity_curves_npy(model_fn, 
                           X, y, 
                           configs,
@@ -63,45 +64,114 @@ def complexity_curves_npy(model_fn,
     return total_history
 
 
-# TODO: update this so we can work directly with tensorflow dataset objects
-def complexity_curves_tf(model_fn, 
-                        train_ds, 
-                        val_ds, 
-                        test_ds, 
-                        configs,
-                        input_shape=None,
-                        num_classes=None,
-                        outpath='./plot'):
-    raise NotImplementedError
 
-    if input_shape is None or num_classes is None:
-        for x in train_ds: break
-        input_shape = x[0].shape[1:]
-        num_classes = x[1].shape[-1] if len(x[1].shape) > 1 else len(np.unique(x[1]))
-        del x
+def complexity_curves_tf(model_fn, 
+                         input_shape,
+                         num_classes,
+                         train_ds, 
+                         val_ds, 
+                         test_ds, 
+                         configs,
+                         epochs=10,
+                         batch_size=16,
+                         outpath='./plot'):
 
     # Must fully prepare data beforehand for model ingestion (e.g. batch, repeat, prefetch)
-    histories = []
-    results = []
-    model_sizes = []
+    train_ds = train_ds.batch(batch_size=batch_size)
+    val_ds = val_ds.batch(batch_size=batch_size)
+    test_ds = test_ds.batch(batch_size=batch_size)
 
-    for cfg in configs:
-        model = model_fn(
-            input_shape=input_shape, num_classes=num_classes, **cfg
-        ); print(model.summary())
+    histories = {}
+    results = {}
+    model_sizes = {}
 
-        histories.append(model.fit(train_ds, validation_data=val_ds))
+    config_by_name = 'model_nm' in fargs(model_fn)
 
-        results.append(model.evaluate(test_ds))
+    for i, (nm, cfg) in enumerate(configs.items()):
+        if config_by_name:
+            model = model_fn(
+                input_shape=input_shape, num_classes=num_classes, model_nm=nm
+            )
+        else:
+            model = model_fn(
+                input_shape=input_shape, num_classes=num_classes, **cfg
+            )
 
-        model_sizes.append(get_param_count(model))
+        h = model.fit(
+            train_ds, 
+            validation_data=val_ds, 
+            epochs=epochs,
+            batch_size=batch_size
+        )
+        histories[i] = h
+        plot_metrics(h, show=False, outpath=os.path.join(
+            outpath, 'training_curves_{}'.format(i))
+        )
+
+        r = model.evaluate(test_ds)
+        results[i] = r
+
+        model_sizes[i] = get_param_count(model)
 
     total_history = process_history(results, histories)
 
     plot_metrics(
         total_history, show=False, xlab="Model complexity (# params)", 
-        xticks=range(len(model_sizes)), xtick_labels=(model_sizes).astype(int),
-        outpath='plot/final_run_curves.png'
+        xticks=range(len(model_sizes)), xtick_labels=model_sizes,
+        outpath=os.path.join(outpath, 'final_complexity_curves.png')
     )
 
     return total_history
+
+
+
+
+def test():
+
+    import tensorflow as tf
+    import tensorflow_datasets as tfds
+    from mlcurves import models, complexity_curves_tf, complexity_curves_npy
+    from mlcurves.curve_utils import fargs, plot_metrics, get_param_count
+
+    model_fn = models.antirectifier.build_antirectifier_dense
+    configs = models.antirectifier.dense_configs
+
+    # For tensorflow datasets
+    ds, ts = tfds.load('mnist', split=['train', 'test'], shuffle_files=True)
+    train_ds = ds.map(lambda x: (tf.reshape(x['image'], [-1, 1]), x['label']))
+    test_ds = ts.map(lambda x: (tf.reshape(x['image'], [-1, 1]), x['label']))
+
+    # For numpy arrays
+    trainXy = np.asarray(list(ds.as_numpy_iterator()))
+    testXy = np.asarray(list(ts.as_numpy_iterator()))
+    X = np.concatenate([trainXy, testXy])
+    y = X[:, 1]
+    X = X[:, 0]
+
+    batch_size = 128
+    epochs = 5
+
+    val_size = 1500
+    train_ds = train_ds.skip(val_size)
+    val_ds = train_ds.take(val_size)
+
+    subset=False
+    if subset:
+        train_ds = train_ds.take(20)
+        val_ds = val_ds.take(2)
+        test_ds = test_ds.take(5)
+
+    num_classes = 10
+    input_shape = [784, 1]
+
+    complexity_curves_tf(
+        model_fn=model_fn,
+        train_ds=train_ds, val_ds=val_ds, test_ds=test_ds, num_classes=num_classes,
+        batch_size=batch_size, epochs=epochs, input_shape=input_shape, configs=configs, outpath='./'
+    )
+
+    complexity_curves_npy(
+        model_fn=model_fn, X=X, y=y,
+        epochs=epochs, batch_size=batch_size, num_classes=num_classes,
+        input_shape=input_shape, configs=configs, outpath='./'
+    )

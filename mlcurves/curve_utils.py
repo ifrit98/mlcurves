@@ -7,10 +7,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from inspect import signature
 
+
 fargs = lambda f: list(signature(f).parameters.keys())
 timestamp = lambda: time.strftime("%m_%d_%y_%H-%M-%S", time.strptime(time.asctime()))
 product = lambda x: reduce(lambda a,b: a*b, x)
 is_onehot = lambda y: len(y.shape) > 1
+
 
 class Namespace:
     def __init__(self, **kwargs):

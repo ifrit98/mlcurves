@@ -6,10 +6,10 @@ from .curve_utils import process_history, plot_metrics, batch_generator
 from .curve_utils import  shuffle_sk, shufflej, sample_pd
 
 
-def generate_train_set_size_curves_tf(model_fn, trainset, valset, testset, batch_size,
-                                      epochs=10, n_runs=11, preserve_dist=True, 
-                                      shuffle_init=True, buffer_size=None,
-                                      outpath='./plot'):
+def train_set_size_curves_tf(model_fn, trainset, valset, testset, batch_size,
+                             epochs=10, n_runs=11, preserve_dist=True, 
+                             shuffle_init=True, buffer_size=None,
+                             outpath='./plot'):
     # Takes model and tensorflow Models and data.Dataset objects ONLY
     # Assume model is compiled properly before being passed as an argument
 
@@ -40,7 +40,7 @@ def generate_train_set_size_curves_tf(model_fn, trainset, valset, testset, batch
         print("Starting dataset size: (train) {}", tr)
         print("Percentage of full trainset {}%".format(tr/train_len)*100)
 
-        ds_sub = trainset.skip(tr_prev).take(tr).shuffle(buffer_size).batch(batch_size)    
+        ds_sub = trainset.skip(tr_prev).take(tr).shuffle(buffer_size).batch(batch_size)
         tr_prev = tr
 
         model = model_fn(input_shape, 10, logits=True)
@@ -67,10 +67,9 @@ def generate_train_set_size_curves_tf(model_fn, trainset, valset, testset, batch
     return total_history
 
 
-def generate_train_set_size_curves_npy(model_fn, X, y, prepared_npy_datasets=None, 
-                                       epochs=10, labels=None, n_runs=10, batch_size=8, 
-                                       preserve_dist=True,
-                                       outpath='./plot'):
+def train_set_size_curves_npy(model_fn, X, y, prepared_npy_datasets=None, 
+                              epochs=10, labels=None, n_runs=10, batch_size=8, 
+                              preserve_dist=True, outpath='./plot'):
     # Takes model and tensorflow Models and data.Dataset objects ONLY
     # Assume model is compiled properly before being passed as an argument
     
@@ -136,7 +135,7 @@ def generate_train_set_size_curves_npy(model_fn, X, y, prepared_npy_datasets=Non
 
 def test():
     import tensorflow_datasets as tfds
-    from .models.antirect import build_antirectifier_cnn_1D
+    from .models.antirectifier import build_antirectifier_cnn_1D
     
     # For tensorflow datasets
     ds, ts = tfds.load('mnist', split=['train', 'test'], shuffle_files=True)

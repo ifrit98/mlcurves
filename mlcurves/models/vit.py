@@ -218,9 +218,9 @@ def vit(input_shape, num_classes,
     return model
 
 
-def build_vit(input_shape, num_classes, mean=None, var=None, model_name='vit_base'):
+def build_vit(input_shape, num_classes, mean=None, var=None, model_nm='vit_base'):
     # Get configuration dict by str name
-    cfg = model_configs[model_name]
+    cfg = model_configs[model_nm]
 
     # Construct base model
     net = vit(

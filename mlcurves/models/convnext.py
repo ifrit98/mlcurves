@@ -186,10 +186,10 @@ model_configs = dict(
 
 
 def base_model(input_shape=(224, 224, 3), ckpt_path=None,
-               num_classes=1000, model_name='convnext_tiny_224', 
+               num_classes=1000, model_nm='convnext_tiny_224', 
                include_top=True, pretrained=True, **kwargs):
 
-    cfg = model_configs['_'.join(model_name.split('_')[:2])]
+    cfg = model_configs['_'.join(model_nm.split('_')[:2])]
 
     # Construct base model
     net = ConvNeXt(num_classes, cfg['depths'], cfg['dims'], include_top, **kwargs)
@@ -197,18 +197,18 @@ def base_model(input_shape=(224, 224, 3), ckpt_path=None,
 
     if pretrained is True:
         # Look for local ckpt first
-        pretrained_ckpt = os.path.join(os.getcwd(), 'weights', model_name + '.h5') \
+        pretrained_ckpt = os.path.join(os.getcwd(), 'weights', model_nm + '.h5') \
             if ckpt_path is None else ckpt_path
         
         # If it doesn't exist, then download it from git repo
         if not os.path.exists(pretrained_ckpt):
             print("Model file not found locally... downloading from git repo")
-            url = model_urls[model_name]
-            pretrained_ckpt = tf.keras.utils.get_file(f'{model_name}.h5', url, untar=False) 
+            url = model_urls[model_nm]
+            pretrained_ckpt = tf.keras.utils.get_file(f'{model_nm}.h5', url, untar=False) 
                        
         # Load the weights
         net.load_weights(pretrained_ckpt, skip_mismatch=True, by_name=True)
-        print("Loaded weights for {}".format(model_name))
+        print("Loaded weights for {}".format(model_nm))
 
     return net
 
@@ -216,7 +216,7 @@ def base_model(input_shape=(224, 224, 3), ckpt_path=None,
 def build_convnext(input_shape,
                    n_classes,
                    pretrained=False,
-                   model_name='convnext_tiny_224',
+                   model_nm='convnext_tiny_224',
                    fine_tune_at=None,
                    include_top=True,
                    flatten=False,
@@ -229,7 +229,7 @@ def build_convnext(input_shape,
         include_top = False
 
     conv_next = base_model(
-        model_name=model_name, 
+        model_nm=model_nm, 
         input_shape=input_shape, pretrained=pretrained,
         num_classes=n_classes, include_top=include_top
     )

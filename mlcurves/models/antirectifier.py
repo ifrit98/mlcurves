@@ -42,34 +42,87 @@ class Antirectifier(tf.keras.layers.Layer):
 
 
 
-def antirectifier_dense(input_shape, num_classes, logits=False):
-  model = tf.keras.Sequential()
-  model.add(tf.keras.layers.Input(input_shape))
-  model.add(tf.keras.layers.Dense(128))
-  model.add(Antirectifier())
-  model.add(tf.keras.layers.BatchNormalization())
-  model.add(tf.keras.layers.Dense(256))
-  model.add(Antirectifier())
-  model.add(tf.keras.layers.Dense(512))
-  model.add(tf.keras.layers.Dropout(0.1))
-  model.add(tf.keras.layers.BatchNormalization())
-  model.add(tf.keras.layers.Dense(num_classes))
-  if not logits:
-    model.add(tf.keras.layers.Activation('softmax'))
+# def antirectifier_dense(input_shape, num_classes, logits=False):
+#   model = tf.keras.Sequential()
+#   model.add(tf.keras.layers.Input(input_shape))
+#   model.add(tf.keras.layers.Dense(128))
+#   model.add(Antirectifier())
+#   model.add(tf.keras.layers.BatchNormalization())
+#   model.add(tf.keras.layers.Dense(256))
+#   model.add(Antirectifier())
+#   model.add(tf.keras.layers.Dense(512))
+#   model.add(tf.keras.layers.Dropout(0.1))
+#   model.add(tf.keras.layers.BatchNormalization())
+#   model.add(tf.keras.layers.Dense(num_classes))
+#   if not logits:
+#     model.add(tf.keras.layers.Activation('softmax'))
 
-  loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True) \
-    if logits else tf.keras.losses.CategoricalCrossentropy()
-  metrics = ['accuracy']
-  optimizer = tf.keras.optimizers.Adam() #optimizers.SGD()
+#   loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True) \
+#     if logits else tf.keras.losses.CategoricalCrossentropy()
+#   metrics = ['accuracy']
+#   optimizer = tf.keras.optimizers.Adam() #optimizers.SGD()
 
-  model.compile(
-    loss=loss, 
-    optimizer=optimizer, 
-    metrics=metrics
-  )
+#   model.compile(
+#     loss=loss, 
+#     optimizer=optimizer, 
+#     metrics=metrics
+#   )
 
-  print(model.summary())
-  return model
+#   print(model.summary())
+#   return model
+
+
+
+def antirectifier_dense(input_shape,
+                        num_classes,
+                        model_nm='antirectifier_dense',
+                        n_layers=4,
+                        unit_sizes=[64, 128, 256, 512],
+                        dropout_rate=0.2,
+                        flatten=True,
+                        logits=False,
+                        jit_compile=True):
+
+    assert len(unit_sizes) == n_layers
+
+    model = Sequential(name=model_nm)
+    model.add(Input(input_shape))
+
+    for i in range(n_layers):
+        model.add(Sequential(layers=[
+            Dense(units=unit_sizes[i], activation=None),
+            Antirectifier(),
+            BatchNormalization()],
+            name="antirectifier_block_{}".format(i))
+        )
+
+    if flatten:
+      model.add(Flatten())
+    else:
+      model.add(GlobalMaxPooling1D())
+
+    model.add(Dropout(dropout_rate))
+    model.add(Dense(num_classes, activation=None, name='classification_head'))
+
+    if logits is False:
+        model.add(Activation('softmax', name="softmax"))
+
+    loss = SparseCategoricalCrossentropy(from_logits=True) \
+        if logits else CategoricalCrossentropy()
+
+    metrics = ['accuracy']
+
+    optimizer = Adam() #optimizers.SGD()
+
+    model.compile(
+        loss=loss, 
+        optimizer=optimizer, 
+        metrics=metrics,
+        jit_compile=jit_compile
+    )
+
+    print(model.summary())
+    return model
 
 
 
@@ -84,7 +137,8 @@ def antirectifier_cnn_1D(input_shape,
                          flatten=True,
                          padding='same',
                          logits=False,
-                         max_layer_depth_pool=8):
+                         max_layer_depth_pool=8,
+                         jit_compile=True):
 
     assert len(filter_sizes) == len(kernel_sizes) == n_layers
 
@@ -127,7 +181,7 @@ def antirectifier_cnn_1D(input_shape,
         loss=loss, 
         optimizer=optimizer, 
         metrics=metrics,
-        jit_compile=True
+        jit_compile=jit_compile
     )
 
     print(model.summary())
@@ -146,7 +200,8 @@ def antirectifier_cnn_2D(input_shape,
                          flatten=True,
                          padding='same',
                          logits=False,
-                         max_layer_depth_pool=8):
+                         max_layer_depth_pool=8,
+                         jit_compile=True):
 
     assert len(filter_sizes) == len(kernel_sizes) == n_layers
 
@@ -189,7 +244,7 @@ def antirectifier_cnn_2D(input_shape,
         loss=loss, 
         optimizer=optimizer, 
         metrics=metrics,
-        jit_compile=True
+        jit_compile=jit_compile
     )
 
     print(model.summary())
@@ -197,7 +252,50 @@ def antirectifier_cnn_2D(input_shape,
 
 
 
-configs = model_configs = dict(
+dense_configs = dict(
+  antirect_tiny=dict(
+    n_layers=2,
+    unit_sizes=[32, 64],
+    dropout_rate=0.2,
+    flatten=False,
+    logits=True
+  ),
+  antirect_small=dict(
+    n_layers=4,
+    unit_sizes=[64, 128, 256, 512],
+    dropout_rate=0.2,
+    flatten=False,
+    padding='same',
+    logits=True
+  ),
+  antirect_base=dict(
+    n_layers=6,
+    unit_sizes=[32, 64, 64, 128, 256, 256],
+    dropout_rate=0.2,
+    flatten=False,
+    padding='same',
+    logits=True
+  ),
+  antirect_large=dict(
+    n_layers=8,
+    unit_sizes=[64, 64, 128, 128, 256, 256, 384, 384],
+    dropout_rate=0.2,
+    flatten=False,
+    padding='same',
+    logits=True
+  ),
+  antirect_xlarge=dict(
+    n_layers=10,
+    unit_sizes=[64, 64, 128, 128, 256, 256, 384, 384, 512, 512],
+    dropout_rate=0.2,
+    flatten=False,
+    padding='same',
+    logits=True
+  ),  
+)
+
+
+cnn_configs = dict(
   antirect_tiny=dict(
     n_layers=2,
     filter_sizes=[32, 64],
@@ -251,9 +349,25 @@ configs = model_configs = dict(
 )
 
 
+def build_antirectifier_dense(input_shape, num_classes,                
+                              model_nm='antirectifier_dense'):
+  cfg = dense_configs[model_nm]
 
-def build_antirectifier_cnn_1D(input_shape, num_classes, model_name='antirect_base'):
-  cfg = model_configs[model_name]
+  model = antirectifier_dense(
+    input_shape=input_shape,
+    num_classes=num_classes,
+    n_layers=cfg['n_layers'],
+    unit_sizes=cfg['unit_sizes'],
+    dropout_rate=cfg['dropout_rate'],
+    flatten=cfg['flatten'],
+    logits=cfg['logits'],
+    model_nm=model_nm
+  )
+  return model
+
+
+def build_antirectifier_cnn_1D(input_shape, num_classes, model_nm='antirect_base'):
+  cfg = cnn_configs[model_nm]
 
   model = antirectifier_cnn_1D(
     input_shape=input_shape, num_classes=num_classes,
@@ -265,13 +379,13 @@ def build_antirectifier_cnn_1D(input_shape, num_classes, model_name='antirect_ba
     flatten=cfg['flatten'],
     padding=cfg['padding'],
     logits=cfg['logits'],
-    model_nm=model_name
+    model_nm=model_nm
   )
   return model
 
 
-def build_antirectifier_cnn_2D(input_shape, num_classes, model_name='antirect_base'):
-  cfg = model_configs[model_name]
+def build_antirectifier_cnn_2D(input_shape, num_classes, model_nm='antirect_base'):
+  cfg = cnn_configs[model_nm]
 
   model = antirectifier_cnn_2D(
     input_shape=input_shape, num_classes=num_classes,
@@ -283,7 +397,7 @@ def build_antirectifier_cnn_2D(input_shape, num_classes, model_name='antirect_ba
     flatten=cfg['flatten'],
     padding=cfg['padding'],
     logits=cfg['logits'],
-    model_nm=model_name
+    model_nm=model_nm
   )
   return model
 
