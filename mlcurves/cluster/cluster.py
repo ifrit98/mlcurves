@@ -158,6 +158,7 @@ def pca_then_tsne(x_train, y_train,
     df['pca-two'] = pca_transform[:,1]
     df['tsne-pca50-one'] = tsne_transform[:,0]
     df['tsne-pca50-two'] = tsne_transform[:,1]
+    df['y'] = y_train
 
     plt.figure(figsize=(16,4))
     ax1 = plt.subplot(1, 3, 1)
