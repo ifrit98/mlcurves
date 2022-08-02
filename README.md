@@ -203,3 +203,45 @@ history = complexity_curves_tf(
 )
 ```
 ![complexity_curves](assets/complexity_curves.png)
+
+
+
+### Learn Rate Range Test
+```{python}
+from mlcurves import learn_rate_range_test, plot_metrics
+
+ds = my_custom_dataset() # a tf.data.Dataset object
+val = my_custom_val_dataset() # a tf.data.Dataset object
+
+model = my_keras_model(lr) # keras model via tf.keras.Model() or tf.keras.Sequential()
+
+# Initial (min) Learning Rate 
+init_lr = 0.001
+
+# Max learning rate to use in range test
+max_lr = 2
+
+# Perform the range test
+(new_min_lr, new_max_lr) = learn_rate_range_test(
+    model, ds, 
+    init_lr=init_lr, max_lr=max_lr
+)
+
+# Recompile model, start with new max_lr and schedule decrease to min_lr
+model = my_keras_model(lr=new_max_lr)
+
+lr_range_callback = tf.keras.callbacks.LearningRateScheduler(
+    schedule = lambda epoch: new_max_lr * tf.pow(
+        tf.pow(new_max_lr / new_max_lr, 1 / (epochs - 1)), epoch
+    )
+)
+
+h = model.fit(
+    ds, validation_data=val_ds,
+    callbacks=[lr_range_callback]
+)
+
+# View metrics from new history object from run with new lr params
+plot_metrics(h)
+
+```

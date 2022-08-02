@@ -13,6 +13,8 @@ def complexity_curves_npy(model_fn,
                           input_shape=None,
                           num_classes=None,
                           outpath='./plot'):
+                          
+    if not os.path.exists(outpath): os.mkdir(outpath)
 
     (X_train, y_train), (X_test, y_test) = split_Xy(X, y, split=0.1)
     (X_test, y_test), (X_val, y_val) = split_Xy(X_test, y_test, split=0.4)
@@ -53,13 +55,14 @@ def complexity_curves_npy(model_fn,
 
         model_sizes.append(get_param_count(model))
 
+    model_basename = nm.split("_")[0]
     total_history = process_history(results, histories)
 
     plot_metrics(
         total_history, show=False, xlab="Model complexity (# params)", 
         ylab="Crossentropy Loss",
         xticks=range(len(model_sizes)), xtick_labels=list(model_sizes.values()),
-        outpath=os.path.join(outpath, 'final_complexity_curves.png')
+        outpath=os.path.join(outpath, '{}_complexity_curves.png'.format(model_basename))
     )
 
     return total_history
@@ -76,6 +79,8 @@ def complexity_curves_tf(model_fn,
                          epochs=10,
                          batch_size=16,
                          outpath='./plot'):
+
+    if not os.path.exists(outpath): os.mkdir(outpath)
 
     # Must fully prepare data beforehand for model ingestion (e.g. batch, repeat, prefetch)
     train_ds = train_ds.batch(batch_size=batch_size)
@@ -114,13 +119,14 @@ def complexity_curves_tf(model_fn,
 
         model_sizes[i] = get_param_count(model)
 
+    model_basename = nm.split("_")[0]
     total_history = process_history(results, histories)
 
     plot_metrics(
         total_history, show=False, xlab="Model complexity (# params)", 
         ylab="Crossentropy Loss",
         xticks=range(len(model_sizes)), xtick_labels=list(model_sizes.values()),
-        outpath=os.path.join(outpath, 'final_complexity_curves.png')
+        outpath=os.path.join(outpath, '{}_complexity_curves.png'.format(model_basename))
     )
 
     return total_history
@@ -150,7 +156,6 @@ def test(conv1D=True, subset=False):
         train_ds = ds.map(lambda x: (x['image'], x['label']))
         test_ds =  ts.map(lambda x: (x['image'], x['label']))
 
-
     for x in train_ds: break
     input_shape = x[0].shape
     num_classes = 10
@@ -163,12 +168,11 @@ def test(conv1D=True, subset=False):
     val_ds = train_ds.take(val_size)
     train_ds = train_ds.skip(val_size)
 
-    subset=False
+    subset=True
     if subset:
-        train_ds = train_ds.take(20)
-        val_ds = val_ds.take(2)
-        test_ds = test_ds.take(5)
-
+        train_ds = train_ds.take(100).shuffle(100)
+        val_ds = val_ds.take(5)
+        test_ds = test_ds.take(10)
 
     complexity_curves_tf(
         model_fn=model_fn,
