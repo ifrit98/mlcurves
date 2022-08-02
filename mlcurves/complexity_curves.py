@@ -57,7 +57,8 @@ def complexity_curves_npy(model_fn,
 
     plot_metrics(
         total_history, show=False, xlab="Model complexity (# params)", 
-        xticks=range(len(model_sizes)), xtick_labels=model_sizes,
+        ylab="Crossentropy Loss",
+        xticks=range(len(model_sizes)), xtick_labels=list(model_sizes.values()),
         outpath=os.path.join(outpath, 'final_complexity_curves.png')
     )
 
@@ -117,7 +118,8 @@ def complexity_curves_tf(model_fn,
 
     plot_metrics(
         total_history, show=False, xlab="Model complexity (# params)", 
-        xticks=range(len(model_sizes)), xtick_labels=model_sizes,
+        ylab="Crossentropy Loss",
+        xticks=range(len(model_sizes)), xtick_labels=list(model_sizes.values()),
         outpath=os.path.join(outpath, 'final_complexity_curves.png')
     )
 

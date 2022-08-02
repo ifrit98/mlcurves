@@ -138,46 +138,121 @@ class AddLearningRateToHistory(tf.keras.callbacks.Callback):
         self.model.history.history['lr'].append(lr)
 
 
+def fold_histories(histories):
+    """
+    Go from list of history objects to history object with [-1] of each as entry per epoch
+    e.g.
+    histories = [ 
+        hist1.history = {
+            'acc':  [0, ..., 0.81],
+            'loss': [inf, ..., 0.4],
+            'lr':   [1e-4, ..., 1e-4]
+        },
+        hist2.history = {
+            'acc':  [0, ..., 0.99],
+            'loss': [inf, ..., 0.1],
+            'lr':   [1e-4, ..., 1e-4]
+
+        } 
+    ]
+    --> histories.history = {
+        'acc':  [0.81, 0.99],
+        'loss': [ 0.4,  0.1],
+        'lr':   [1e-4, 1e-5]
+    }
+
+    """
+    history = {k: [] for k in histories[0].history.keys()}
+    
+    for hist in histories.values():
+        {history[k].append(v[-1]) for k,v in hist.history.items()}
+
+    # prepare final hist object
+    hist.history = history
+    hist.epoch = list(range(len(histories)))
+    hist.params['epochs'] = len(histories)
+
+    if 'model' in hist.__dict__.keys():
+        del hist.model
+
+    return hist
 
 
-def learn_rate_range_test2(model_fn, ds, init_lr=1e-4, factor=3, plot=True, steps_per_epoch=None,
-                           max_lr=3, max_loss=2, epochs=25, save_hist=True, verbose=1):
 
-    lr_range_callback = tf.keras.callbacks.LearningRateScheduler(
-        schedule = lambda epoch: init_lr * tf.pow(
-            tf.pow(max_lr / init_lr, 1 / (epochs - 1)), epoch))
+def learn_rate_range_test2(model_fn, ds,
+                           init_lr=1e-4,
+                           factor=3,
+                           plot=True,
+                           steps_per_epoch=None,
+                           max_lr=2,
+                           max_loss=2, 
+                           epochs=10,
+                           n_runs=20,
+                           save_hist=True, 
+                           verbose=1):
+    """
+    Perform a learn rate range test using multiple epochs per learn_rate.
+    """
 
     schedule = lambda epoch: init_lr * tf.pow(
-        tf.pow(max_lr / init_lr, 1 / (epochs - 1)), epoch
+        tf.pow(max_lr / init_lr, 1 / (n_runs - 1)), epoch
     )
 
-    sched = list(map(lambda x: schedule(x), list(range(epochs))))
+    learn_rates = list(
+        map(lambda x: schedule(x), list(range(n_runs)))
+    )
 
-    for lr in sched:
+    histories = {}
 
-        model = model_fn()
+    for i, lr in enumerate(learn_rates):
+        print("=============================================")
+        print("learn rate: {}".format(lr))
+        model = model_fn(lr=lr)
 
         if steps_per_epoch is not None:
             hist = model.fit(
                 ds,
                 epochs=epochs,
                 steps_per_epoch=int(steps_per_epoch),
-                callbacks=[lr_range_callback],
+                callbacks=[AddLearningRateToHistory()],
                 verbose=verbose)
         else:
             hist = model.fit(
                 ds,
                 epochs=epochs,
-                callbacks=[lr_range_callback],
+                callbacks=[AddLearningRateToHistory()],
                 verbose=verbose)
 
+        histories[i] = hist
+
+        del model
+
+    # Accumulate history objects into single history
+    lr_hist = fold_histories(histories)
+
+    if save_hist:
+        from pickle import dump
+        f = open("lr-range-test-history", 'wb')
+        dump(lr_hist.history, f)
+        f.close()
+
+    min_lr, best_lr = infer_best_lr_params(lr_hist, factor)
+
+    if plot:
+        plot_lr_range_test_from_hist(
+            lr_hist, max_lr=max_lr, max_loss=max_loss
+        )
+
+    return (min_lr, best_lr), lr_hist
 
 
 
-
+# Reference: https://arxiv.org/pdf/1708.07120.pdf%22
 def learn_rate_range_test(model, ds, init_lr=1e-4, factor=3, plot=True, steps_per_epoch=None,
                           max_lr=3, max_loss=2, epochs=25, save_hist=True, verbose=1):
-
+    """
+    Perform a learn rate range test using a single epoch per learn_rate. (paper version)
+    """
     lr_range_callback = tf.keras.callbacks.LearningRateScheduler(
         schedule = lambda epoch: init_lr * tf.pow(
             tf.pow(max_lr / init_lr, 1 / (epochs - 1)), epoch))
@@ -225,6 +300,13 @@ def demo(epochs=25, max_lr=3):
 
     print("LOADING SMALL MNIST MODEL...")
     model = mnist_model()
+
+    print("CONDUCTING LEARNING_RATE RANGE TEST2 (multiple epochs per LR)...")
+    (min_lr, max_lr), lr_hist = learn_rate_range_test2(
+        mnist_model, ds, max_lr=max_lr, epochs=epochs)
+    print("Minimum learning rate:", min_lr)
+    print("Maximum learning rate:", max_lr)
+
 
     print("CONDUCTING LEARNING_RATE RANGE TEST...")
     (min_lr, max_lr), lr_hist = learn_rate_range_test(
