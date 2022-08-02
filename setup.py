@@ -30,5 +30,5 @@ setup(name='mlcurves',
       author='Jason St George',
       author_email='stgeorge@brsc.com',
       packages=find_packages(),
-      install_requires=deps)
-
+      install_requires=deps
+)
