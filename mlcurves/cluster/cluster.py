@@ -252,8 +252,10 @@ def demo():
     plt.show()
 
 
-    transform_3D = cluster.pca_3D(X, y)
+    _ = cluster.pca_3D(X, y)
 
-    cluster.tsne()
-    cluster.pca_then_tsne()
-    cluster.correlation_heatmap()
+
+    _ = cluster.tsne()
+
+
+    _ = cluster.pca_then_tsne(X, y)
