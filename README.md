@@ -245,3 +245,4 @@ h = model.fit(
 plot_metrics(h)
 
 ```
+![LR_range_plot](assets/LR_plot.png)
