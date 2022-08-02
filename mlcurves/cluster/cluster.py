@@ -217,3 +217,14 @@ def pca_3D(X, y=None, n_components=3):
 
 def dbscan():
     raise NotImplementedError
+
+
+def demo():
+    from mlcurves.curve_utils import mnist_npy
+    X, y = mnist_npy(return_test=False)
+
+    from mlcurves import cluster
+    transform_3D = cluster.pca_3D(X, y)
+    cluster.tsne()
+    cluster.pca_then_tsne()
+    cluster.correlation_heatmap()

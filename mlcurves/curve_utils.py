@@ -1,12 +1,14 @@
 import time
-import numpy as np
 from warnings import warn
 from functools import reduce
-from sklearn.model_selection import train_test_split
-import seaborn as sns
-import matplotlib.pyplot as plt
 from inspect import signature
 
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+import tensorflow as tf
 
 fargs = lambda f: list(signature(f).parameters.keys())
 timestamp = lambda: time.strftime("%m_%d_%y_%H-%M-%S", time.strptime(time.asctime()))
@@ -25,6 +27,16 @@ class Namespace:
 def env(**kwargs):
     return Namespace(**kwargs)
 namespace = environment = env
+
+
+def permutation(x):
+    """Return the indices of random permutation of `x`"""
+    return np.random.permutation(len(x) if hasattr(x, '__len__') else int(x))
+
+
+def random_permutation(x):
+    """Return a random permutation of `x` across its zero-axis"""
+    return x[permutation(x)]
 
 
 def split_Xy(X, y, split=0.1):
@@ -50,18 +62,6 @@ def import_history(path='history/model_history'):
     with open(path, 'rb') as f:
       history = pickle.load(f)
     return history
-
-
-def load_mnist(subsample=False, take_n=3000, reshape=True):
-    from tensorflow.keras.datasets import mnist
-    (x_train, y_train), (_ , _) = mnist.load_data()
-    if subsample:
-        x_train = x_train[:take_n]
-        y_train = y_train[:take_n]
-    if reshape:
-        x_train = np.reshape(x_train, [x_train.shape[0], x_train.shape[1]*x_train.shape[2]])
-    print("Loading MNIST with shape:", x_train.shape)
-    return x_train, y_train
 
 
 def batch_generator(X, y, batch_size, shuffle=False):
@@ -396,3 +396,110 @@ def plot_metrics(history,
         plt.show()
 
 
+def plot_metrics2(history, acc='accuracy', loss='loss', 
+                 val_acc='val_accuracy', val_loss='val_loss'):
+    acc      = history.history[acc]
+    val_acc  = history.history[val_acc]
+    loss     = history.history[loss]
+    val_loss = history.history[val_loss]
+    epochs   = range(len(acc))
+    sns.set()
+    plt.plot(epochs, acc, 'bo', label='Training accuracy')
+    plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
+    plt.title('Training and validation accuracy')
+    plt.figure()
+    plt.plot(epochs, loss, 'bo', label='Training Loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation Loss')
+    plt.title('Training and validation loss')
+    plt.legend()
+    plt.show()
+
+
+def mnist_model(lr=0.001):
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+        tf.keras.layers.Dense(128,activation='relu'),
+        tf.keras.layers.Dense(64,activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+    ])
+    model.compile(
+        loss='sparse_categorical_crossentropy',
+        optimizer=tf.keras.optimizers.Adam(lr),
+        metrics=['accuracy'],
+    )
+    return model
+
+
+def mnist_tfds(shuffle=True):
+    import tensorflow_datasets as tfds
+    
+    (ds_train, ds_test), ds_info = tfds.load(
+        'mnist',
+        split=['train', 'test'],
+        shuffle_files=shuffle,
+        as_supervised=True,
+        with_info=True,
+    )
+    normalize_img = lambda img, lbl: (tf.cast(img, tf.float32) / 255., lbl)
+
+    # Train
+    ds_train = ds_train.map(
+        normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_train = ds_train.cache()
+    ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
+    ds_train = ds_train.batch(128)
+    ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
+
+    # Test
+    ds_test = ds_test.map(
+        normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_test = ds_test.batch(128)
+    ds_test = ds_test.cache()
+    ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
+
+    return (ds_train, ds_test)
+
+
+def mnist_npy(subsample=False, 
+              take_n=3000, 
+              shuffle=True, 
+              vectorize=True, 
+              norm=True, 
+              return_test=True):
+    from tensorflow.keras.datasets import mnist
+    (x_train, y_train), (x_test , y_test) = mnist.load_data()
+
+    if shuffle:
+        train_idx = permutation(len(x_train))
+        test_idx  = permutation(len(x_test))
+
+        x_train = x_train[train_idx]
+        y_train = y_train[train_idx]
+        x_test  = x_test[test_idx]
+        y_test  = y_test[test_idx]
+
+    if subsample:
+        x_train = x_train[:take_n]
+        y_train = y_train[:take_n]
+
+    if vectorize:
+        x_train = np.reshape(
+            x_train, [x_train.shape[0], x_train.shape[1]*x_train.shape[2]]
+        )
+        x_test  = np.reshape(
+            x_test, [x_test.shape[0], x_test.shape[1]*x_test.shape[2]]
+        )
+
+    # Normalize images
+    if norm:
+        x_train = x_train.astype(float) / 255.0
+        x_test  = x_test.astype(float) / 255.0
+
+    if return_test:
+        print("Loading MNIST with shape:\ntrain: {}\ntest:  {}".format(
+            x_train.shape, x_test.shape)
+        )
+        return (x_train, y_train), (x_test, y_test)
+    else:
+        print("Loading MNIST with shape:\ntrain: {}".format(x_train.shape))
+        return x_train, y_train
