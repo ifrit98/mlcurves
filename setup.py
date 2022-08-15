@@ -14,10 +14,10 @@ if not os.path.exists(REQ_FILE):
             "matplotlib",
             "seaborn",
             "scikit-learn",
-            "tensorflow<=2.8.*",
+            "tensorflow==2.8.*",
             "tensorflow_probability",
             "tensorflow_addons",
-            "keras<=2.8"
+            "keras==2.8"
       ]
       warn(', '.join(deps))
 else:

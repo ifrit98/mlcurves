@@ -42,37 +42,6 @@ class Antirectifier(tf.keras.layers.Layer):
 
 
 
-# def antirectifier_dense(input_shape, num_classes, logits=False):
-#   model = tf.keras.Sequential()
-#   model.add(tf.keras.layers.Input(input_shape))
-#   model.add(tf.keras.layers.Dense(128))
-#   model.add(Antirectifier())
-#   model.add(tf.keras.layers.BatchNormalization())
-#   model.add(tf.keras.layers.Dense(256))
-#   model.add(Antirectifier())
-#   model.add(tf.keras.layers.Dense(512))
-#   model.add(tf.keras.layers.Dropout(0.1))
-#   model.add(tf.keras.layers.BatchNormalization())
-#   model.add(tf.keras.layers.Dense(num_classes))
-#   if not logits:
-#     model.add(tf.keras.layers.Activation('softmax'))
-
-#   loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True) \
-#     if logits else tf.keras.losses.CategoricalCrossentropy()
-#   metrics = ['accuracy']
-#   optimizer = tf.keras.optimizers.Adam() #optimizers.SGD()
-
-#   model.compile(
-#     loss=loss, 
-#     optimizer=optimizer, 
-#     metrics=metrics
-#   )
-
-#   print(model.summary())
-#   return model
-
-
-
 def antirectifier_dense(input_shape,
                         num_classes,
                         model_nm='antirectifier_dense',
@@ -118,7 +87,7 @@ def antirectifier_dense(input_shape,
         loss=loss, 
         optimizer=optimizer, 
         metrics=metrics,
-        jit_compile=jit_compile
+        # jit_compile=jit_compile
     )
 
     print(model.summary())
@@ -181,7 +150,7 @@ def antirectifier_cnn_1D(input_shape,
         loss=loss, 
         optimizer=optimizer, 
         metrics=metrics,
-        jit_compile=jit_compile
+        # jit_compile=jit_compile
     )
 
     print(model.summary())

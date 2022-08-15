@@ -74,7 +74,7 @@ def pca(data, labels=None, n_components=2, whiten=False, random_state=None, show
         sns.scatterplot(
             x=pca_transform[:,0], y=pca_transform[:,1],
             hue=None if labels is None else labels,
-            palette=sns.color_palette("hls", 10),
+            palette=sns.color_palette("hls", len(np.unique(labels))),
             legend="full",
             alpha=0.3
         )
@@ -155,7 +155,8 @@ def pca_then_tsne(x_train, y_train=None,
                   verbose=1,
                   early_exag=12,
                   n_iter=2000, # 300
-                  n_iter_without_progress=1000):
+                  n_iter_without_progress=1000,
+                  show=True):
 
     # Compute PCA and get transform
     pca_transform = pca(x_train, n_components=n_pca_components, whiten=whiten)
@@ -169,37 +170,37 @@ def pca_then_tsne(x_train, y_train=None,
     )
 
     # Final visualization
-    num_classes = len(np.unique(y_train))
+    if show:
+        num_classes = len(np.unique(y_train))
+        df = pd.DataFrame()
+        df['pca-one'] = pca_transform[:,0]
+        df['pca-two'] = pca_transform[:,1]
+        df['tsne-pca50-one'] = tsne_transform[:,0]
+        df['tsne-pca50-two'] = tsne_transform[:,1]
+        df['y'] = y_train
 
-    df = pd.DataFrame()
-    df['pca-one'] = pca_transform[:,0]
-    df['pca-two'] = pca_transform[:,1]
-    df['tsne-pca50-one'] = tsne_transform[:,0]
-    df['tsne-pca50-two'] = tsne_transform[:,1]
-    df['y'] = y_train
-
-    plt.figure(figsize=(16,4))
-    ax1 = plt.subplot(1, 3, 1)
-    sns.scatterplot(
-        x="pca-one", y="pca-two",
-        hue=None if y_train is None else "y",
-        palette=sns.color_palette("hls", num_classes),
-        data=df,
-        legend="full",
-        alpha=0.3,
-        ax=ax1
-    )
-    ax2 = plt.subplot(1, 3, 2)
-    sns.scatterplot(
-        x="tsne-pca50-one", y="tsne-pca50-two",
-        hue=None if y_train is None else "y",
-        palette=sns.color_palette("hls", num_classes),
-        data=df,
-        legend="full",
-        alpha=0.3,
-        ax=ax2
-    )
-    plt.show()
+        plt.figure(figsize=(16,4))
+        ax1 = plt.subplot(1, 3, 1)
+        sns.scatterplot(
+            x="pca-one", y="pca-two",
+            hue=None if y_train is None else "y",
+            palette=sns.color_palette("hls", num_classes),
+            data=df,
+            legend="full",
+            alpha=0.3,
+            ax=ax1
+        )
+        ax2 = plt.subplot(1, 3, 2)
+        sns.scatterplot(
+            x="tsne-pca50-one", y="tsne-pca50-two",
+            hue=None if y_train is None else "y",
+            palette=sns.color_palette("hls", num_classes),
+            data=df,
+            legend="full",
+            alpha=0.3,
+            ax=ax2
+        )
+        plt.show()
 
     return tsne_transform
 
