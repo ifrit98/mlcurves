@@ -49,7 +49,7 @@ def correlation_heatmap(df, cols=None, mask_upper=True, show=True, light_cmap=Fa
     return fig, ax 
 
 
-def pca(data, n_components, whiten=False, random_state=None):
+def pca(data, labels=None, n_components=2, whiten=False, random_state=None, show=True):
     # 
     # Create PCA transform
     # 
@@ -64,22 +64,33 @@ def pca(data, n_components, whiten=False, random_state=None):
     )
     pcaratio = p.explained_variance_ratio_
 
-    ax = sns.scatterplot(x=np.arange(len(pcaratio)), y=np.cumsum(pcaratio))
-    ax.set_title("PCA Explained Variance")
-    plt.legend()
-    plt.show()
+    if show:
+        ax = sns.scatterplot(x=np.arange(len(pcaratio)), y=np.cumsum(pcaratio))
+        ax.set_title("PCA Explained Variance")
+        plt.legend()
+        plt.show()
+
+        plt.figure(figsize=(16,10))
+        sns.scatterplot(
+            x=pca_transform[:,0], y=pca_transform[:,1],
+            hue=None if labels is None else labels,
+            palette=sns.color_palette("hls", 10),
+            legend="full",
+            alpha=0.3
+        )
+        plt.show()
     
     return pca_transform
 
 
-def tsne(x_train, y_train, 
+def tsne(x_train, y_train=None, 
          random_state=123, 
          scale=False,
          scale_type='standard',
          perplexity=50,
          n_components=2, 
          verbose=1, 
-         n_iter=2000, 
+         n_iter=2000,
          early_exaggeration=12, 
          n_iter_without_progress=1000,
          title="T-SNE projection"):
@@ -116,11 +127,18 @@ def tsne(x_train, y_train,
     df["y"]      = y_train
 
     # Create scatterplot and show
-    ax = sns.scatterplot(
-        x="tsne-1", y="tsne-2", hue=df.y.tolist(),
-        palette=sns.color_palette("hls", len(np.unique(y_train))), 
-        data=df
-    )
+    if y_train is None:
+        ax = sns.scatterplot(
+            x="tsne-1", y="tsne-2",
+            palette=sns.color_palette("hls", 10), 
+            data=df
+        )
+    else:
+        ax = sns.scatterplot(
+            x="tsne-1", y="tsne-2", hue=df.y.tolist(),
+            palette=sns.color_palette("hls", len(np.unique(y_train))), 
+            data=df
+        )
     ax.set_title(title)
     plt.show()
 
@@ -129,7 +147,7 @@ def tsne(x_train, y_train,
 
 
 
-def pca_then_tsne(x_train, y_train, 
+def pca_then_tsne(x_train, y_train=None, 
                   n_pca_components=50, 
                   n_tsne_components=2, 
                   whiten=False, 
@@ -164,7 +182,7 @@ def pca_then_tsne(x_train, y_train,
     ax1 = plt.subplot(1, 3, 1)
     sns.scatterplot(
         x="pca-one", y="pca-two",
-        hue="y",
+        hue=None if y_train is None else "y",
         palette=sns.color_palette("hls", num_classes),
         data=df,
         legend="full",
@@ -174,7 +192,7 @@ def pca_then_tsne(x_train, y_train,
     ax2 = plt.subplot(1, 3, 2)
     sns.scatterplot(
         x="tsne-pca50-one", y="tsne-pca50-two",
-        hue="y",
+        hue=None if y_train is None else "y",
         palette=sns.color_palette("hls", num_classes),
         data=df,
         legend="full",
@@ -187,36 +205,38 @@ def pca_then_tsne(x_train, y_train,
 
 
 
-def pca_3D(X, y, n_components=3):
+def pca_3D(X, y, n_components=3, show=True):
     """
     Compute PCA with 3 components and visualize in 3Space
     """
     #
     # Compute PCA transform for 3D axes
     #
-    transform = pca(X, n_components=n_components)
+    transform = pca(X, n_components=n_components, show=False)
 
-    # 
-    # Create dataframe for plotular convenience 
-    # 
-    cols = list(map(lambda x: 'pca-' + str(x), range(1, transform.shape[-1] + 1)))
-    df = pd.DataFrame(transform, columns=cols)
-    df['y'] = y
-    
-    #
-    # Do the plotting
-    #
-    ax = plt.figure(figsize=(16,10)).gca(projection='3d')
-    ax.scatter(
-        xs=df["pca-1"], 
-        ys=df["pca-2"], 
-        zs=df["pca-3"], 
-        c=df["y"], cmap='tab10'
-    )
-    ax.set_xlabel('pca-one')
-    ax.set_ylabel('pca-two')
-    ax.set_zlabel('pca-three')
-    plt.show()
+    if show:
+        # 
+        # Create dataframe for plotular convenience 
+        # 
+        cols = list(map(lambda x: 'pca-' + str(x), range(1, transform.shape[-1] + 1)))
+        df = pd.DataFrame(transform, columns=cols)
+        df['y'] = y
+        
+        #
+        # Do the plotting
+        #
+        ax = plt.figure(figsize=(16,10)).gca(projection='3d')
+        ax.scatter(
+            xs=df["pca-1"],
+            ys=df["pca-2"],
+            zs=df["pca-3"],
+            c=None if y is None else df["y"],
+            cmap='tab10'
+        )
+        ax.set_xlabel('pca-one')
+        ax.set_ylabel('pca-two')
+        ax.set_zlabel('pca-three')
+        plt.show()
 
     return transform
 
@@ -226,37 +246,19 @@ def dbscan():
 
 
 def demo():
+    from mlcurves.cluster import pca_3D, pca, tsne, pca_then_tsne
     from mlcurves.curve_utils import mnist_npy
-    import seaborn as sns
-    import matplotlib.pyplot as plt
 
     X, y = mnist_npy(return_test=False, shuffle=False)
 
-    from mlcurves import cluster
-    pca_transform = cluster.pca(X, n_components=2)
 
-    from pandas import DataFrame
-    df = DataFrame()
-    df['pca-one'] = pca_transform[:,0]
-    df['pca-two'] = pca_transform[:,1]
-    df['y']       = y
-
-    plt.figure(figsize=(16,10))
-    sns.scatterplot(
-        x="pca-one", y="pca-two",
-        hue="y",
-        palette=sns.color_palette("hls", 10),
-        data=df,
-        legend="full",
-        alpha=0.3
-    )
-    plt.show()
+    _ = pca(X, y)
 
 
-    _ = cluster.pca_3D(X, y)
+    _ = pca_3D(X, y)
 
 
-    _ = cluster.tsne()
+    _ = tsne(X, y)
 
 
-    _ = cluster.pca_then_tsne(X, y)
+    _ = pca_then_tsne(X, y)

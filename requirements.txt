@@ -3,6 +3,7 @@ pandas
 matplotlib
 seaborn
 scikit-learn
-tensorflow
+tensorflow<=2.8.*
 tensorflow_probability
 tensorflow_addons
+keras<=2.8 # Keras 2.9.0 has dtensor error importing tensorflow: (this is a keras issue)

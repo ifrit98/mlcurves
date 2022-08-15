@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import tensorflow as tf
-from tensorflow.keras import backend as K
+from tensorflow import keras 
+K = keras.backend 
 
 from .curve_utils import mnist_tfds, mnist_model, timestamp, plot_metrics
 
