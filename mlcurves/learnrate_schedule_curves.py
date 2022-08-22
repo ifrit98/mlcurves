@@ -221,7 +221,7 @@ def learn_rate_range_test(model, ds, init_lr=1e-4, factor=3,
     if plot:
         plot_lr_range_test_from_hist(
             hist, 
-            max_lr=max_lr, max_loss=max_loss, best_lr_idx=best_lr_idx,
+            max_lr=max_lr, max_loss=max_loss,
             filename=outpath
         )
 

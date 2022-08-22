@@ -44,7 +44,7 @@ class Antirectifier(tf.keras.layers.Layer):
 
 def antirectifier_dense(input_shape,
                         num_classes,
-                        model_nm='antirectifier_dense',
+                        model_nm='antirect_base',
                         n_layers=4,
                         unit_sizes=[64, 128, 256, 512],
                         dropout_rate=0.2,
@@ -241,7 +241,7 @@ dense_configs = dict(
     n_layers=6,
     unit_sizes=[32, 64, 64, 128, 256, 256],
     dropout_rate=0.2,
-    flatten=False,
+    flatten=True,
     padding='same',
     logits=True
   ),
@@ -319,7 +319,7 @@ cnn_configs = dict(
 
 
 def build_antirectifier_dense(input_shape, num_classes,                
-                              model_nm='antirectifier_dense'):
+                              model_nm='antirect_base'):
   cfg = dense_configs[model_nm]
 
   model = antirectifier_dense(

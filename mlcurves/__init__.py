@@ -16,3 +16,35 @@ from .curve_utils import take_subset, plot_metrics, mnist_model, mnist_tfds, mni
 from .curve_utils import fargs, timestamp, product, get_param_count, batch_generator
 
 from .model_paces import model_paces
+
+
+def demo(n_val=2000):
+    n_val=2000
+    import numpy as np
+    import tensorflow as tf
+    ds, ts = mnist_tfds(shuffle=True)
+
+    ds = ds.map(lambda x,y: (
+        tf.reshape(x, tf.constant([-1, np.product(x.shape[1:])])), y)
+    )
+    ts = ts.map(lambda x,y: (
+        tf.reshape(x, tf.constant([-1, np.product(x.shape[1:])])), y)
+    )
+
+    vs = ts.take(n_val)
+    ts = ts.skip(n_val)
+
+    for x in ds: break
+    input_shape = x[0].shape[1:]
+    num_classes = len(np.unique(x[1]))
+
+    from mlcurves.models.antirectifier import build_antirectifier_dense, dense_configs
+    from mlcurves import model_paces
+
+    paces = model_paces(
+        build_antirectifier_dense, 
+        input_shape,
+        num_classes=num_classes,
+        train_ds=ds, test_ds=ts, val_ds=vs,
+        cfg_dict=dense_configs,
+    )
