@@ -13,3 +13,4 @@ from .curve_utils import env, permutation, random_permutation, sample_pd
 from .curve_utils import create_random_indices, shuffle_sk, shufflej, vec_matrix
 from .curve_utils import take_subset, plot_metrics, mnist_model, mnist_tfds, mnist_npy
 from .curve_utils import fargs, timestamp, product, get_param_count, batch_generator
+from .model_paces import model_paces
