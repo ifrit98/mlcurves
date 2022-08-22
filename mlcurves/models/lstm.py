@@ -2,7 +2,6 @@ import numpy as np
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, LSTM, BatchNormalization, Input, Flatten, Bidirectional, Embedding
 from tensorflow.keras.optimizers import Adam
-# from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras import preprocessing
 
@@ -20,19 +19,6 @@ def bidirectional_lstm(input_shape=(None,), num_classes=1, max_features=64, acti
     model = Model(inputs, outputs)
     model.summary()
     return model
-
-
-# Pad sequences
-def get_max_shape(xs):
-    unlist = lambda x: x[0] if hasattr(x, "__len__") else x
-    shape = lambda x: np.asarray(x).shape
-    lmap = lambda f, x: list(map(f, x))
-    return unlist(max(lmap(shape, xs)))
-
-
-pad_sequences = lambda x: preprocessing.sequence.pad_sequences(x, maxlen=get_max_shape(x))
-
-
 
 
 def base_lstm_model(input_shape, layer_sizes, 
@@ -84,7 +70,7 @@ def base_lstm_model(input_shape, layer_sizes,
 
     return model
 
-base_lstm_configs = dict(
+model_configs = dict(
     base_lstm_small=dict(
         layer_sizes=[128,64,32],
         activation='tanh',
@@ -119,7 +105,7 @@ base_lstm_configs = dict(
 
 
 def build_base_lstm(input_shape, num_classes, model_nm='base_lstm_small'):
-  cfg = base_lstm_configs[model_nm]
+  cfg = model_configs[model_nm]
 
   model = base_lstm_model(
     input_shape=input_shape,

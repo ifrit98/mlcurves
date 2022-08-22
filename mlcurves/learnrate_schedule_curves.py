@@ -185,8 +185,10 @@ def learn_rate_range_test2(model_fn, ds,
 
 
 # Reference: https://arxiv.org/pdf/1708.07120.pdf%22
-def learn_rate_range_test(model, ds, init_lr=1e-4, factor=3, plot=True, steps_per_epoch=None,
-                          max_lr=3, max_loss=2, epochs=25, save_hist=True, verbose=1):
+def learn_rate_range_test(model, ds, init_lr=1e-4, factor=3, 
+                          plot=True, steps_per_epoch=None,
+                          max_lr=3, max_loss=2, epochs=25, 
+                          save_hist=True, verbose=1, outpath='lr_range_test'):
     """
     Perform a learn rate range test using a single epoch per learn_rate. (paper version)
     """
@@ -219,7 +221,8 @@ def learn_rate_range_test(model, ds, init_lr=1e-4, factor=3, plot=True, steps_pe
     if plot:
         plot_lr_range_test_from_hist(
             hist, 
-            max_lr=max_lr, max_loss=max_loss, best_lr_idx=best_lr_idx
+            max_lr=max_lr, max_loss=max_loss, best_lr_idx=best_lr_idx,
+            filename=outpath
         )
 
     return (min_lr, best_lr), hist

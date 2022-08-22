@@ -3,3 +3,4 @@ build
 *.egg*
 *__pycache__*
 dist/
+timeseries_transformer_classification.py
