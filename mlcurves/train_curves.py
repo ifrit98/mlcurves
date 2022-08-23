@@ -6,15 +6,20 @@ from .curve_utils import process_history, plot_metrics, batch_generator
 from .curve_utils import  shuffle_sk, shufflej, sample_pd
 
 
-def train_set_size_curves_tf(model_fn, trainset, valset, testset, batch_size,
-                             epochs=10, n_runs=11, preserve_dist=True, 
-                             shuffle_init=True, buffer_size=None,
+def train_set_size_curves_tf(model_fn, trainset, valset, 
+                             testset, num_classes,
+                             batch_size=16,
+                             epochs=10, n_runs=11, 
+                             shuffle_init=True, 
+                             buffer_size=None,
                              outpath='./plot'):
     # Takes model and tensorflow Models and data.Dataset objects ONLY
     # Assume model is compiled properly before being passed as an argument
 
     # Get monotonically increasing range based on percentages
     train_len = len(list(trainset.as_numpy_iterator()))
+
+    if not os.path.exists(outpath): os.mkdir(outpath)
 
     if buffer_size is None:
         buffer_size = train_len
@@ -38,13 +43,13 @@ def train_set_size_curves_tf(model_fn, trainset, valset, testset, batch_size,
     results = {}
     for i, tr in enumerate(train_sizes):
         print("Starting dataset size: (train) {}", tr)
-        print("Percentage of full trainset {}%".format(tr/train_len)*100)
+        print("Percentage of full trainset {}%".format((tr/train_len)*100))
 
         ds_sub = trainset.skip(tr_prev).take(tr).shuffle(buffer_size).batch(batch_size)
         tr_prev = tr
 
-        model = model_fn(input_shape, 10, logits=True)
-
+        model = model_fn(input_shape, num_classes=num_classes)
+        # TODO: STANDARDIZE THIS! (MUST KNOW if CATEGORICAL CROSSENTROPY OR BINARY)
         history = model.fit(ds_sub, validation_data=valset.batch(batch_size), epochs=epochs)
         histories[i] = history
 
@@ -67,8 +72,9 @@ def train_set_size_curves_tf(model_fn, trainset, valset, testset, batch_size,
     return total_history
 
 
-def train_set_size_curves_npy(model_fn, X, y, prepared_npy_datasets=None, 
-                              epochs=10, labels=None, n_runs=10, batch_size=8, 
+def train_set_size_curves_npy(model_fn, X, y, num_classes, 
+                              prepared_npy_datasets=None, 
+                              epochs=10, labels=None, n_runs=10, batch_size=16, 
                               preserve_dist=True, outpath='./plot'):
     # Takes model and tensorflow Models and data.Dataset objects ONLY
     # Assume model is compiled properly before being passed as an argument
@@ -105,7 +111,7 @@ def train_set_size_curves_npy(model_fn, X, y, prepared_npy_datasets=None,
         traingen = batch_generator(train_X_sub, train_y_sub, batch_size)
 
         # Reinstantiate model
-        model = model_fn(input_shape, 10, logits=True)
+        model = model_fn(input_shape, num_classes=num_classes)
 
         # Train and record
         history = model.fit(
@@ -160,13 +166,13 @@ def test():
     valset = ds.take(val_size)
     testset = ts
 
-    generate_train_set_size_curves_tf(
-        model_fn=build_antirectifier_cnn_1D,
+    train_set_size_curves_tf(
+        model_fn=build_antirectifier_cnn_1D, num_classes=10,
         trainset=trainset, valset=valset, testset=testset, 
         batch_size=batch_size, n_runs=n_runs, epochs=epochs
     )
 
-    generate_train_set_size_curves_npy(
-        build_antirectifier_cnn_1D, X, y,
+    train_set_size_curves_npy(
+        build_antirectifier_cnn_1D, X, y, num_classes=10,
         epochs=epochs, batch_size=batch_size, n_runs=n_runs
     )

@@ -45,3 +45,31 @@ def model_paces(model_fn, input_shape, num_classes, train_ds, test_ds, cfg_dict,
         'lr_range_history': h
     }
     # TODO: Train using pipeline that writes eval out with new `init_lr`
+
+
+
+def paces_demo(outpath='./out', n_val=2000):
+    import os
+    from mlcurves.curve_utils import mnist
+
+    ds, ts = mnist(shuffle=True, vectorize=True, expand_dims=False, batch_size=16)
+    vs = ts.take(n_val)
+    ts = ts.skip(n_val)
+
+    for x in ds: break
+    input_shape = x[0].shape[1:]
+    num_classes = 10
+    print("input shape:", input_shape)
+
+    from mlcurves.models.antirectifier import build_antirectifier_dense, dense_configs
+    from mlcurves import model_paces
+
+    paces = model_paces(
+        build_antirectifier_dense, 
+        input_shape,
+        num_classes=num_classes,
+        train_ds=ds, test_ds=ts, val_ds=vs,
+        cfg_dict=dense_configs,
+        outpath=os.path.join(outpath, "model_paces")
+    )
+    print("model paces results: {}".format(paces))

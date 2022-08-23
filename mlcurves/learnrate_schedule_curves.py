@@ -5,7 +5,7 @@ import seaborn as sns
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-from .curve_utils import mnist_tfds, mnist_model, timestamp, plot_metrics
+from .curve_utils import mnist, mnist_model, timestamp, plot_metrics
 
 add_time = lambda s: s + '_' + timestamp()
 
@@ -236,7 +236,7 @@ def demo(epochs=25, max_lr=3):
 
 
     print("\n\nLOADING AND PROCESSING MNIST DATA...")
-    (ds, ts) = mnist_tfds()
+    (ds, ts) = mnist()
 
     print("LOADING SMALL MNIST MODEL...")
     model = mnist_model()

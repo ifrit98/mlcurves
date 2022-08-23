@@ -430,44 +430,58 @@ def mnist_model(lr=0.001):
     return model
 
 
-def mnist_tfds(shuffle=True):
-    import tensorflow_datasets as tfds
-    
-    (ds_train, ds_test), ds_info = tfds.load(
-        'mnist',
-        split=['train', 'test'],
-        shuffle_files=shuffle,
-        as_supervised=True,
-        with_info=True,
-    )
-    normalize_img = lambda img, lbl: (tf.cast(img, tf.float32) / 255., lbl)
+def mnist(return_type='tensorflow',
+          subsample=False,
+          take_n=3000,
+          take_split=0.8,
+          shuffle=True,
+          vectorize=True,
+          batch_size=None,
+          buffer_size=60000,
+          expand_dims=False,
+          return_test=True):
+    assert return_type in ['tensorflow', 'numpy']
+    import tensorflow as tf
 
-    # Train
-    ds_train = ds_train.map(
-        normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_train = ds_train.cache()
-    ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-    ds_train = ds_train.batch(128)
-    ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
+    (x_train, y_train), (x_test , y_test) = tf.keras.datasets.mnist.load_data()
 
-    # Test
-    ds_test = ds_test.map(
-        normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_test = ds_test.batch(128)
-    ds_test = ds_test.cache()
-    ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
+    if return_type=='tensorflow':
+        ds_train = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+        ds_test  = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
-    return (ds_train, ds_test)
+        vec_func = lambda img, lbl: (
+            tf.reshape(img, [img.shape[0]*img.shape[1]]), lbl 
+        )
+        normalize_img = lambda img, lbl: (tf.cast(img, tf.float32) / 255., lbl)
+        expand_dims_func = lambda img, lbl: (tf.expand_dims(img, -1), lbl)
 
+        # Train
+        ds_train = ds_train.map(
+            normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        ds_train = ds_train.take(take_n) if subsample else ds_train
+        ds_train = ds_train.cache()
+        ds_train = ds_train.shuffle(buffer_size) if shuffle else ds_train
+        ds_train = ds_train.map(vec_func) if vectorize else ds_train
+        ds_train = ds_train.map(expand_dims_func) if expand_dims else ds_train
+        ds_train = ds_train.batch(batch_size) if batch_size is not None else ds_train
+        ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
 
-def mnist_npy(subsample=False, 
-              take_n=3000, 
-              shuffle=True, 
-              vectorize=True, 
-              norm=True, 
-              return_test=True):
-    from tensorflow.keras.datasets import mnist
-    (x_train, y_train), (x_test , y_test) = mnist.load_data()
+        # Test
+        ds_test = ds_test.map(
+            normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        ds_test = ds_test.map(vec_func) if vectorize else ds_test
+        ds_test = ds_test.map(expand_dims_func) if expand_dims else ds_test
+        if subsample:
+            ds_train = ds_train.shuffle(int(take_split*buffer_size))
+            ds_train = ds_train.take(int(take_n*take_split))
+        ds_test = ds_test.batch(batch_size) if batch_size is not None else ds_test
+        ds_test = ds_test.cache()
+        ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
+
+        return_val = (ds_train, ds_test) if return_test else ds_train
+        for x in ds_train: break
+        print("Loading Tesnorflow dataset with shape: {}".format(x[0].shape))
+        return return_val
 
     if shuffle:
         train_idx = permutation(len(x_train))
@@ -480,7 +494,7 @@ def mnist_npy(subsample=False,
 
     if subsample:
         x_train = x_train[:take_n]
-        y_train = y_train[:take_n]
+        y_train = y_train[:int(take_n*take_split)]
 
     if vectorize:
         x_train = np.reshape(
@@ -490,16 +504,22 @@ def mnist_npy(subsample=False,
             x_test, [x_test.shape[0], x_test.shape[1]*x_test.shape[2]]
         )
 
-    # Normalize images
-    if norm:
-        x_train = x_train.astype(float) / 255.0
-        x_test  = x_test.astype(float) / 255.0
+    if expand_dims:
+        x_train = np.expand_dims(x_train, -1)
+        x_test  = np.expand_dims(x_test, -1)
 
-    if return_test:
-        print("Loading MNIST with shape:\ntrain: {}\ntest:  {}".format(
-            x_train.shape, x_test.shape)
-        )
-        return (x_train, y_train), (x_test, y_test)
-    else:
-        print("Loading MNIST with shape:\ntrain: {}".format(x_train.shape))
-        return x_train, y_train
+    # Normalize images
+    x_train = x_train.astype(float) / 255.0
+    x_test  = x_test.astype(float) / 255.0
+
+    return_val = ((x_train, y_train), (x_test, y_test)) \
+        if return_test else (x_train, y_train)
+
+    print_string = "Loading numpy MNIST with shape:\ntrain: {}\ntest:  {}".format(
+        x_train.shape, x_test.shape) \
+            if return_test else "Loading numpy MNIST with shape:\ntrain: {}".format(
+                x_train.shape
+            )
+    print(print_string)
+    return return_val
+
