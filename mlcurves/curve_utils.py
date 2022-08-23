@@ -29,6 +29,17 @@ def env(**kwargs):
 namespace = environment = env
 
 
+# Padding sequences
+def get_max_shape(xs):
+    unlist = lambda x: x[0] if hasattr(x, "__len__") else x
+    shape = lambda x: np.asarray(x).shape
+    lmap = lambda f, x: list(map(f, x))
+    return unlist(max(lmap(shape, xs)))
+
+pad_sequences = lambda x: tf.keras.preprocessing.sequence.pad_sequences(
+    x, maxlen=get_max_shape(x)
+)
+
 def permutation(x):
     """Return the indices of random permutation of `x`"""
     return np.random.permutation(len(x) if hasattr(x, '__len__') else int(x))
