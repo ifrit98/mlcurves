@@ -18,7 +18,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, Normalizer
 product = lambda x: reduce(lambda a,b: a*b, x)
 
 
-def correlation_heatmap(df, cols=None, mask_upper=True, show=True, light_cmap=False, lw=0.5):
+def correlation_heatmap(df, 
+                        cols=None, mask_upper=True, show=True, 
+                        light_cmap=False, lw=0.5, outpath=None):
     # Correlation between different variables
     df = df[cols] if cols is not None else df
     corr = df.corr()
@@ -35,6 +37,9 @@ def correlation_heatmap(df, cols=None, mask_upper=True, show=True, light_cmap=Fa
     # Draw the heatmap
     sns.heatmap(corr, annot=True, mask = mask, cmap=cmap, linewidths=lw)
 
+    if outpath is not None:
+        plt.savefig(outpath)
+
     # Show and return fig,ax
     if show:
         plt.show()
@@ -42,7 +47,8 @@ def correlation_heatmap(df, cols=None, mask_upper=True, show=True, light_cmap=Fa
     return fig, ax 
 
 
-def pca(data, labels=None, n_components=2, whiten=False, random_state=None, show=True, title=None):
+def pca(data, labels=None, n_components=2, whiten=False, 
+        random_state=None, show=True, outpath=None, title=None):
 
     # Create PCA transform
     p = PCA(n_components=n_components, whiten=whiten, random_state=random_state)
@@ -69,6 +75,8 @@ def pca(data, labels=None, n_components=2, whiten=False, random_state=None, show
             alpha=0.3
         )
         plt.title(title or "PCA {} components".format(n_components))
+        if outpath is not None:
+            plt.savefig(outpath)        
         plt.show()
     
     return pca_transform
@@ -85,6 +93,7 @@ def tsne(x_train, y_train=None,
          early_exaggeration=12, 
          n_iter_without_progress=1000,
          show=True,
+         outpath=None,
          title="T-SNE projection"):
 
     # Ensure data is in form (n_obs, samples)
@@ -134,6 +143,8 @@ def tsne(x_train, y_train=None,
                 data=df
             )
         ax.set_title(title)
+        if outpath is not None:
+            plt.savefig(outpath)
         plt.show()
 
     del df
@@ -151,6 +162,7 @@ def pca_then_tsne(x_train, y_train=None,
                   n_iter=2000, # 300
                   n_iter_without_progress=1000,
                   show=True,
+                  outpath=None,
                   title="PCA->TSNE"):
 
     # Compute PCA and get transform
@@ -198,13 +210,15 @@ def pca_then_tsne(x_train, y_train=None,
         )
         ax2.set_title("TSNE {} components".format(n_tsne_components))
         plt.title(title or "PCA ({}) -> TSNE ({})".format(n_pca_components, n_tsne_components))
+        if outpath is not None:
+            plt.savefig(outpath)
         plt.show()
 
     return tsne_transform
 
 
 
-def pca_3D(X, y, n_components=3, show=True):
+def pca_3D(X, y, n_components=3, show=True, outpath=None):
     """
     Compute PCA with 3 components and visualize in 3Space
     """
@@ -231,6 +245,8 @@ def pca_3D(X, y, n_components=3, show=True):
         ax.set_xlabel('pca-one')
         ax.set_ylabel('pca-two')
         ax.set_zlabel('pca-three')
+        if outpath is not None:
+            plt.savefig(outpath)
         plt.show()
 
     return transform
