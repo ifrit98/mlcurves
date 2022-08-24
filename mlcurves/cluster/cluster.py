@@ -186,7 +186,7 @@ def pca_then_tsne(x_train, y_train=None,
         df['tsne-pca50-two'] = tsne_transform[:,1]
         df['y'] = y_train
 
-        plt.figure(figsize=(16,4))
+        plt.figure(figsize=(16,8))
         ax1 = plt.subplot(1, 2, 1)
         sns.scatterplot(
             x="pca-one", y="pca-two",
@@ -198,7 +198,7 @@ def pca_then_tsne(x_train, y_train=None,
             ax=ax1
         )
         ax1.set_title("PCA {} components".format(n_pca_components))
-        ax2 = plt.subplot(1, 3, 2)
+        ax2 = plt.subplot(1, 2, 2)
         sns.scatterplot(
             x="tsne-pca50-one", y="tsne-pca50-two",
             hue=None if y_train is None else "y",
@@ -210,12 +210,12 @@ def pca_then_tsne(x_train, y_train=None,
         )
         ax2.set_title("TSNE {} components".format(n_tsne_components))
         plt.title(title or "PCA ({}) -> TSNE ({})".format(n_pca_components, n_tsne_components))
+        plt.tight_layout()
         if outpath is not None:
             plt.savefig(outpath)
         plt.show()
 
     return tsne_transform
-
 
 
 def pca_3D(X, y, n_components=3, show=True, outpath=None):
